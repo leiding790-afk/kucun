@@ -1,0 +1,6 @@
+{
+  "name": "智能库存",
+  "description": "一款精致、高效、数据驱动的智能入库与出库登记系统，支持流式条码核对、超高质感的仪表盘及实时库存预警。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
