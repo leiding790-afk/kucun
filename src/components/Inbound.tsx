@@ -39,7 +39,7 @@ export default function Inbound({
   const [name, setName] = useState('');
   const [selectedSupplier, setSelectedSupplier] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState<number | ''>(1);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [showPrefillDropdown, setShowPrefillDropdown] = useState(false);
 
@@ -64,7 +64,7 @@ export default function Inbound({
     onAddPendingInbound({
       sku: barcode.trim().toUpperCase(),
       name: name.trim(),
-      qty,
+      qty: qty === '' ? 1 : qty,
       supplier: selectedSupplier || suppliers[0] || '',
       location: selectedLocation || locations[0] || ''
     });
@@ -307,7 +307,7 @@ export default function Inbound({
               <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1.5 border border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setQty((prev) => Math.max(1, prev - 1))}
+                  onClick={() => setQty((prev) => Math.max(1, (typeof prev === 'number' ? prev : 1) - 1))}
                   className="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded shadow-sm text-gray-600 active:scale-90 duration-150 text-base font-bold"
                 >
                   <Minus className="w-4 h-4 text-[#005bbf]" />
@@ -315,12 +315,27 @@ export default function Inbound({
                 <input
                   type="number"
                   value={qty}
-                  onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => {
+                    const valueStr = e.target.value;
+                    if (valueStr === '') {
+                      setQty('');
+                    } else {
+                      const valueNum = parseInt(valueStr);
+                      if (!isNaN(valueNum)) {
+                        setQty(valueNum);
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    if (qty === '' || qty < 1) {
+                      setQty(1);
+                    }
+                  }}
                   className="w-12 text-center text-lg font-bold text-[#005bbf] bg-transparent outline-none focus:ring-0"
                 />
                 <button
                   type="button"
-                  onClick={() => setQty((prev) => prev + 1)}
+                  onClick={() => setQty((prev) => (typeof prev === 'number' ? prev : 0) + 1)}
                   className="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 rounded shadow-sm text-gray-600 active:scale-90 duration-150 text-base font-bold"
                 >
                   <Plus className="w-4 h-4 text-[#005bbf]" />

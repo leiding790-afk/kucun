@@ -35,6 +35,7 @@ export default function Outbound({
   const [selectedLocation, setSelectedLocation] = useState('中心配送枢纽');
   const [isExpress, setIsExpress] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [localQuantities, setLocalQuantities] = useState<Record<string, string>>({});
 
   // Search product catalog
   const foundProducts = products.filter(
@@ -249,6 +250,11 @@ export default function Outbound({
                           <div className="flex items-center gap-3 mt-1.5">
                             <button
                               onClick={() => {
+                                setLocalQuantities((prev) => {
+                                  const next = { ...prev };
+                                  delete next[item.productId];
+                                  return next;
+                                });
                                 if (item.qty > 1) {
                                   onUpdateCartQty(item.productId, item.qty - 1);
                                 } else {
@@ -259,12 +265,45 @@ export default function Outbound({
                             >
                               -
                             </button>
-                            <span className="font-mono text-sm font-bold text-[#005bbf] w-6 text-center">
-                              {item.qty}
-                            </span>
+                            <input
+                              type="number"
+                              value={localQuantities[item.productId] !== undefined ? localQuantities[item.productId] : item.qty}
+                              onChange={(e) => {
+                                const text = e.target.value;
+                                setLocalQuantities((prev) => ({ ...prev, [item.productId]: text }));
+                                
+                                if (text !== '') {
+                                  let parsed = parseInt(text);
+                                  if (!isNaN(parsed) && parsed >= 0) {
+                                    if (parsed > p.stock) {
+                                      parsed = p.stock;
+                                    }
+                                    onUpdateCartQty(item.productId, parsed);
+                                  }
+                                }
+                              }}
+                              onBlur={() => {
+                                setLocalQuantities((prev) => {
+                                  const next = { ...prev };
+                                  delete next[item.productId];
+                                  return next;
+                                });
+                                if (item.qty < 1) {
+                                  onUpdateCartQty(item.productId, 1);
+                                }
+                              }}
+                              className="w-12 h-8 text-center text-sm font-bold text-[#005bbf] font-mono bg-gray-150 focus:bg-white border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                            />
                             <button
                               disabled={item.qty >= p.stock}
-                              onClick={() => onUpdateCartQty(item.productId, item.qty + 1)}
+                              onClick={() => {
+                                setLocalQuantities((prev) => {
+                                  const next = { ...prev };
+                                  delete next[item.productId];
+                                  return next;
+                                });
+                                onUpdateCartQty(item.productId, item.qty + 1);
+                              }}
                               className="w-8 h-8 rounded-full border border-[#005bbf] flex items-center justify-center text-[#005bbf] hover:bg-blue-50 transition-all disabled:opacity-40 active:scale-95 font-bold"
                             >
                               +
