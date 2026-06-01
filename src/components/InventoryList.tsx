@@ -20,7 +20,7 @@ import {
   Copy,
   Trash2
 } from 'lucide-react';
-import { Product } from '../types';
+import { Product, UserAccount } from '../types';
 
 interface InventoryListProps {
   products: Product[];
@@ -36,6 +36,7 @@ interface InventoryListProps {
   onUpdateProduct?: (product: Product) => void;
   onDeleteProduct?: (id: string) => void;
   onBulkAddProducts?: (products: Product[]) => void;
+  currentUser?: UserAccount;
 }
 
 export default function InventoryList({
@@ -51,9 +52,11 @@ export default function InventoryList({
   onUpdateStock,
   onUpdateProduct,
   onDeleteProduct,
-  onBulkAddProducts
+  onBulkAddProducts,
+  currentUser
 }: InventoryListProps) {
   const [search, setSearch] = useState('');
+  const isAdmin = currentUser?.role === 'admin';
   const [selectedChip, setSelectedChip] = useState<string>('全部');
   const [sortByDateAndStock, setSortByDateAndStock] = useState(false);
   const [selectedProductDetails, setSelectedProductDetails] = useState<Product | null>(null);
@@ -71,6 +74,7 @@ export default function InventoryList({
   const [newMinStock, setNewMinStock] = useState(10);
   const [newSupplier, setNewSupplier] = useState(suppliers[0] || '');
   const [newLocation, setNewLocation] = useState(locations[0] || '');
+  const [newImageUrl, setNewImageUrl] = useState('');
 
   // Bulk Upload Modal states
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -88,6 +92,7 @@ export default function InventoryList({
   const [editMinStock, setEditMinStock] = useState(10);
   const [editLocation, setEditLocation] = useState(locations[0] || '');
   const [editSupplier, setEditSupplier] = useState(suppliers[0] || '');
+  const [editImageUrl, setEditImageUrl] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   // Quick configuration inputs state
@@ -123,7 +128,7 @@ export default function InventoryList({
       stock: newInitialStock,
       minStock: newMinStock,
       warehouseLocation: newLocation,
-      imageUrl: '', 
+      imageUrl: newImageUrl, 
       supplier: newSupplier
     });
 
@@ -132,6 +137,7 @@ export default function InventoryList({
     setNewName('');
     setNewInitialStock(1);
     setNewMinStock(10);
+    setNewImageUrl('');
     setCreateModalOpen(false);
   };
 
@@ -146,7 +152,8 @@ export default function InventoryList({
           stock: editStockVal,
           minStock: editMinStock,
           warehouseLocation: editLocation,
-          supplier: editSupplier
+          supplier: editSupplier,
+          imageUrl: editImageUrl
         });
       } else {
         onUpdateStock(selectedProductDetails.id, editStockVal);
@@ -333,8 +340,19 @@ export default function InventoryList({
   return (
     <div className="space-y-6 pb-24 mt-4 relative">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 tracking-tight font-sans">库存清单与建档</h2>
-        <p className="text-xs text-gray-500 mt-1">全面核查实物、自定义SKU及支持任意产品和货盘批量上传</p>
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight font-sans">库存清单与建档</h2>
+          {!isAdmin && (
+            <span className="bg-amber-50 text-amber-700 text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-amber-250 uppercase tracking-wider flex items-center gap-1">
+              🔒 只读模式
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-1">
+          {isAdmin 
+            ? '全面核查实物、自定义SKU及支持任意产品和货盘批量上传' 
+            : '实时核查实物可用库存配额及分类货品储区（建档及编辑功能归主管专享）'}
+        </p>
       </div>
 
       {/* Sticky Search bar */}
@@ -384,26 +402,29 @@ export default function InventoryList({
             })}
           </div>
           
-          <button
-            onClick={() => setUploadModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>批量上传</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setUploadModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>批量上传</span>
+            </button>
+          )}
         </div>
       </section>
 
       {/* Dynamic Master Config Section */}
-      <div className="space-y-3">
-        <button
-          type="button"
-          onClick={() => setConfigOpen(!configOpen)}
-          className="w-full h-11 bg-slate-100 hover:bg-slate-200/85 text-[#005bbf] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all outline-none border border-gray-250/50"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          {configOpen ? '关闭快捷配置箱' : '🔧 快捷配置 (分类清单、供货商渠道、仓库货架自定义)'}
-        </button>
+      {isAdmin && (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setConfigOpen(!configOpen)}
+            className="w-full h-11 bg-slate-100 hover:bg-slate-200/85 text-[#005bbf] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all outline-none border border-gray-250/50"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {configOpen ? '关闭快捷配置箱' : '🔧 快捷配置 (分类清单、供货商渠道、仓库货架自定义)'}
+          </button>
 
         {configOpen && (
           <div className="bg-white border border-gray-200/90 p-4 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4 animate-fadeIn">
@@ -637,6 +658,7 @@ export default function InventoryList({
           </div>
         )}
       </div>
+      )}
 
       {/* Meta info info line */}
       <div className="flex justify-between items-center text-xs text-gray-400 font-medium pb-1 border-b border-gray-100">
@@ -672,6 +694,7 @@ export default function InventoryList({
                   setEditMinStock(p.minStock);
                   setEditLocation(p.warehouseLocation);
                   setEditSupplier(p.supplier);
+                  setEditImageUrl(p.imageUrl || '');
                   setIsConfirmingDelete(false);
                 }}
                 className="bg-white border border-gray-100 rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex gap-4 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all duration-200 active:scale-[0.99]"
@@ -725,24 +748,34 @@ export default function InventoryList({
       </div>
 
       {/* Floating Action Button for creation */}
-      <button
-        type="button"
-        onClick={() => setCreateModalOpen(true)}
-        className="fixed bottom-24 right-5 w-14 h-14 bg-[#005bbf] text-white rounded-2xl shadow-xl flex items-center justify-center hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all z-40 cursor-pointer border border-[#005bbf]/10"
-        title="手动单件建档"
-      >
-        <Plus className="w-6 h-6 stroke-[2.5px]" />
-      </button>
+      {isAdmin && (
+        <button
+          type="button"
+          onClick={() => {
+            setNewImageUrl('');
+            setCreateModalOpen(true);
+          }}
+          className="fixed bottom-24 right-5 w-14 h-14 bg-[#005bbf] text-white rounded-2xl shadow-xl flex items-center justify-center hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all z-40 cursor-pointer border border-[#005bbf]/10"
+          title="手动单件建档"
+        >
+          <Plus className="w-6 h-6 stroke-[2.5px]" />
+        </button>
+      )}
 
       {/* Product Detail & Edit Modal Slider */}
       {selectedProductDetails && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-gray-100 max-h-[90vh] flex flex-col">
             <div className="bg-[#005bbf] p-4 text-white flex justify-between items-center shrink-0">
-              <h3 className="font-semibold text-base leading-none">编辑产品货盘建档属性</h3>
+              <h3 className="font-semibold text-base leading-none">
+                {isAdmin ? '编辑产品货盘建档属性' : '产品货盘建档属性明细'}
+              </h3>
               <button
                 type="button"
-                onClick={() => setSelectedProductDetails(null)}
+                onClick={() => {
+                  setSelectedProductDetails(null);
+                  setIsConfirmingDelete(false);
+                }}
                 className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
@@ -750,18 +783,60 @@ export default function InventoryList({
             </div>
 
             <div className="p-5 space-y-4 overflow-y-auto flex-1">
-              <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                <div className="w-12 h-12 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
-                  {selectedProductDetails.imageUrl ? (
-                    <img src={selectedProductDetails.imageUrl} alt={selectedProductDetails.name} className="w-full h-full object-cover" />
+              {/* Product Image Click-to-Upload Picker */}
+              <div className="flex flex-col items-center justify-center pb-4 border-b border-gray-100">
+                <div 
+                  onClick={() => {
+                    if (!isAdmin) return;
+                    const picker = document.getElementById('edit-image-file-picker');
+                    picker?.click();
+                  }}
+                  className={`w-32 h-32 rounded-2xl border-2 border-dashed border-gray-200 hover:border-[#005bbf] bg-gray-50/50 hover:bg-gray-50 flex items-center justify-center relative ${isAdmin ? 'cursor-pointer' : 'cursor-default'} overflow-hidden transition-all duration-200 shadow-sm`}
+                >
+                  {editImageUrl ? (
+                    <img src={editImageUrl} alt={editName || 'Product'} className="w-full h-full object-cover" />
                   ) : (
-                    <Boxes className="w-6 h-6 text-gray-300" />
+                    <div className="flex flex-col items-center justify-center text-gray-300">
+                      <Boxes className="w-10 h-10" />
+                    </div>
+                  )}
+                  {/* Pen button overlay */}
+                  {isAdmin && (
+                    <div className="absolute bottom-1.5 right-1.5 bg-[#005bbf] text-white p-1.5 rounded-full border-2 border-white shadow-md">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                      </svg>
+                    </div>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[10px] text-gray-400 font-mono block">修改SKU与基础信息：</span>
-                  <p className="font-bold text-xs text-gray-700 truncate">{selectedProductDetails.name}</p>
-                </div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const picker = document.getElementById('edit-image-file-picker');
+                      picker?.click();
+                    }}
+                    className="mt-2 text-xs text-[#005bbf] font-bold hover:underline cursor-pointer"
+                  >
+                    点击更换图片
+                  </button>
+                )}
+                <input 
+                  type="file"
+                  id="edit-image-file-picker"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setEditImageUrl(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="hidden"
+                />
               </div>
 
               {/* Editable Fields */}
@@ -770,9 +845,10 @@ export default function InventoryList({
                   <label className="block text-[11px] text-gray-450 font-semibold mb-1">SKU 货号</label>
                   <input
                     type="text"
+                    disabled={!isAdmin}
                     value={editSku}
                     onChange={(e) => setEditSku(e.target.value)}
-                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#005bbf] font-mono text-gray-800"
+                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#005bbf] font-mono text-gray-800 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-medium"
                   />
                 </div>
 
@@ -780,9 +856,10 @@ export default function InventoryList({
                   <label className="block text-[11px] text-gray-450 font-semibold mb-1">产品货盘物料名称</label>
                   <input
                     type="text"
+                    disabled={!isAdmin}
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#005bbf] text-gray-800"
+                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#005bbf] text-gray-800 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-medium"
                   />
                 </div>
 
@@ -790,9 +867,10 @@ export default function InventoryList({
                   <div>
                     <label className="block text-[11px] text-gray-450 font-semibold mb-1">所属分类</label>
                     <select
+                      disabled={!isAdmin}
                       value={editCat}
                       onChange={(e) => setEditCat(e.target.value)}
-                      className="w-full h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-800"
+                      className="w-full h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-medium"
                     >
                       {categories.map((c, idx) => (
                         <option key={idx} value={c}>{c}</option>
@@ -803,9 +881,10 @@ export default function InventoryList({
                   <div>
                     <label className="block text-[11px] text-gray-450 font-semibold mb-1">供货渠道商</label>
                     <select
+                      disabled={!isAdmin}
                       value={editSupplier}
                       onChange={(e) => setEditSupplier(e.target.value)}
-                      className="w-full h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 truncate"
+                      className="w-full h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 truncate disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-medium"
                     >
                       {suppliers.map((s, idx) => (
                         <option key={idx} value={s}>{s}</option>
@@ -818,9 +897,10 @@ export default function InventoryList({
                   <div>
                     <label className="block text-[11px] text-gray-450 font-semibold mb-1">预分配储区货架</label>
                     <select
+                      disabled={!isAdmin}
                       value={editLocation}
                       onChange={(e) => setEditLocation(e.target.value)}
-                      className="w-full h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-800"
+                      className="w-full h-9 px-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-medium"
                     >
                       {locations.map((l, idx) => (
                         <option key={idx} value={l}>{l}</option>
@@ -832,98 +912,124 @@ export default function InventoryList({
                     <label className="block text-[11px] text-gray-450 font-semibold mb-1">安全库存水位线</label>
                     <input
                       type="number"
+                      disabled={!isAdmin}
                       value={editMinStock}
                       onChange={(e) => setEditMinStock(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#005bbf] text-gray-800"
+                      className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#005bbf] text-gray-800 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed font-medium font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1 p-3 border border-blue-100 bg-blue-50/20 rounded-xl">
-                  <label className="block text-[11px] font-semibold text-gray-500">
-                    当前实物可用量 (Stock adjustment)
-                  </label>
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditStockVal((prev) => Math.max(0, prev - 1))}
-                      className="w-8 h-8 border border-gray-250 bg-white rounded flex items-center justify-center text-sm hover:bg-gray-100 select-none font-bold text-gray-800"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={editStockVal}
-                      onChange={(e) => setEditStockVal(Math.max(0, parseInt(e.target.value) || 0))}
-                      className="flex-1 h-8 px-2 text-center text-sm font-bold bg-white border border-gray-250 rounded outline-none w-16 text-gray-800"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setEditStockVal((prev) => prev + 1)}
-                      className="w-8 h-8 border border-gray-255 bg-white rounded flex items-center justify-center text-sm hover:bg-gray-100 select-none font-bold text-gray-800"
-                    >
-                      +
-                    </button>
+                {isAdmin ? (
+                  <div className="space-y-1 p-3 border border-blue-100 bg-blue-50/20 rounded-xl">
+                    <label className="block text-[11px] font-semibold text-gray-500">
+                      当前实物可用量 (Stock adjustment)
+                    </label>
+                    <div className="flex items-center justify-between gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditStockVal((prev) => Math.max(0, prev - 1))}
+                        className="w-8 h-8 border border-gray-250 bg-white rounded flex items-center justify-center text-sm hover:bg-gray-100 select-none font-bold text-gray-800"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        value={editStockVal}
+                        onChange={(e) => setEditStockVal(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="flex-1 h-8 px-2 text-center text-sm font-bold bg-white border border-gray-250 rounded outline-none w-16 text-gray-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditStockVal((prev) => prev + 1)}
+                        className="w-8 h-8 border border-gray-255 bg-white rounded flex items-center justify-center text-sm hover:bg-gray-100 select-none font-bold text-gray-800"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-1 p-3.5 border border-slate-100 bg-slate-50/70 rounded-xl">
+                    <label className="block text-[11px] font-bold text-gray-450">
+                      实物可用存量总量
+                    </label>
+                    <div className="text-sm font-extrabold text-[#005bbf] mt-1 font-mono flex items-baseline gap-1 bg-white border border-gray-100 py-1.5 px-3 rounded-lg w-fit">
+                      <span className="text-lg font-black">{editStockVal}</span> 件
+                    </div>
+                  </div>
+                )}
 
                 {/* Deletion option */}
-                <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
-                  {!isConfirmingDelete ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsConfirmingDelete(true)}
-                      className="w-full h-9 border border-red-200 text-red-600 hover:bg-red-50 text-[11px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all outline-none cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      删除该 SKU 物料货盘建档
-                    </button>
-                  ) : (
-                    <div className="bg-red-50 border border-red-200 p-2.5 rounded-xl space-y-2 text-left">
-                      <p className="text-[10px] text-red-700 font-bold text-center leading-normal">
-                        ⚠️ 确认从仓储系统库房中永久销账该 SKU 货盘？（不可撤销）
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsConfirmingDelete(false)}
-                          className="flex-1 h-8 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
-                        >
-                          取消
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (onDeleteProduct) {
-                              onDeleteProduct(selectedProductDetails.id);
-                            }
-                            setSelectedProductDetails(null);
-                          }}
-                          className="flex-1 h-8 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
-                        >
-                          确认删除
-                        </button>
+                {isAdmin && (
+                  <div className="pt-3 border-t border-gray-100 flex flex-col gap-2">
+                    {!isConfirmingDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmingDelete(true)}
+                        className="w-full h-9 border border-red-200 text-red-600 hover:bg-red-50 text-[11px] font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all outline-none cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        删除该 SKU 物料货盘建档
+                      </button>
+                    ) : (
+                      <div className="bg-red-50 border border-red-200 p-2.5 rounded-xl space-y-2 text-left">
+                        <p className="text-[10px] text-red-700 font-bold text-center leading-normal">
+                          ⚠️ 确认从仓储系统库房中永久销账该 SKU 货盘？（不可撤销）
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsConfirmingDelete(false)}
+                            className="flex-1 h-8 bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onDeleteProduct) {
+                                onDeleteProduct(selectedProductDetails.id);
+                              }
+                              setSelectedProductDetails(null);
+                            }}
+                            className="flex-1 h-8 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            确认删除
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2.5 pt-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSelectedProductDetails(null)}
-                  className="flex-1 h-10 border border-gray-200 text-gray-500 font-bold text-xs rounded-xl hover:bg-gray-50"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveProductEdit}
-                  className="flex-1 h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl active:scale-95 transition-all"
-                >
-                  保存设置
-                </button>
+                {!isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProductDetails(null)}
+                    className="w-full h-11 bg-[#005bbf] hover:bg-blue-700 text-white font-bold text-xs rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <CheckCircle className="w-4 h-4" /> 关闭返回清单
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProductDetails(null)}
+                      className="flex-1 h-10 border border-gray-200 text-gray-500 font-bold text-xs rounded-xl hover:bg-gray-50"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveProductEdit}
+                      className="flex-1 h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl active:scale-95 transition-all"
+                    >
+                      保存设置
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -948,6 +1054,57 @@ export default function InventoryList({
             </div>
 
             <form onSubmit={handleCreateProduct} className="p-5 space-y-3 overflow-y-auto flex-1">
+              {/* Product Image Click-to-Upload Picker */}
+              <div className="flex flex-col items-center justify-center pb-3 border-b border-gray-100">
+                <div 
+                  onClick={() => {
+                    const picker = document.getElementById('create-image-file-picker');
+                    picker?.click();
+                  }}
+                  className="w-28 h-28 rounded-2xl border-2 border-dashed border-gray-200 hover:border-[#005bbf] bg-gray-50/50 hover:bg-gray-50 flex items-center justify-center relative cursor-pointer overflow-hidden transition-all duration-200 shadow-sm"
+                >
+                  {newImageUrl ? (
+                    <img src={newImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-300">
+                      <Plus className="w-8 h-8 text-gray-400 stroke-[2px]" />
+                    </div>
+                  )}
+                  {/* Pen button overlay */}
+                  <div className="absolute bottom-1 right-1 bg-[#005bbf] text-white p-1 rounded-full border-2 border-white shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                    </svg>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const picker = document.getElementById('create-image-file-picker');
+                    picker?.click();
+                  }}
+                  className="mt-1.5 text-xs text-[#005bbf] font-bold hover:underline cursor-pointer"
+                >
+                  点击更换图片
+                </button>
+                <input 
+                  type="file"
+                  id="create-image-file-picker"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setNewImageUrl(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </div>
+
               <div>
                 <label className="block text-[11px] text-gray-400 font-semibold mb-1">SKU 货号 *</label>
                 <input

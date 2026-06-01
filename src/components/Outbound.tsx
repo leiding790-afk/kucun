@@ -20,7 +20,7 @@ interface OutboundProps {
   onUpdateCartQty: (productId: string, qty: number) => void;
   onRemoveFromCart: (productId: string) => void;
   onAddToCart: (productId: string) => void;
-  onConfirmOutbound: (location: string, isExpress: boolean) => void;
+  onConfirmOutbound: (location: string, isExpress: boolean, trackingNumber?: string) => void;
 }
 
 export default function Outbound({
@@ -34,6 +34,7 @@ export default function Outbound({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('中心配送枢纽');
   const [isExpress, setIsExpress] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [localQuantities, setLocalQuantities] = useState<Record<string, string>>({});
 
@@ -62,7 +63,7 @@ export default function Outbound({
 
   const handleApplyShipping = () => {
     if (outboundCart.length === 0) return;
-    onConfirmOutbound(selectedLocation, isExpress);
+    onConfirmOutbound(selectedLocation, isExpress, trackingNumber);
   };
 
   return (
@@ -132,50 +133,95 @@ export default function Outbound({
       </div>
 
       {/* Destination / Customer section */}
-      <section className="p-4 bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] border border-gray-100/90">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3.5 flex items-center gap-1.5">
-          <Truck className="w-4 h-4 text-[#005bbf]" /> 核心揽收件目的地与优先级
+      <section className="p-4 bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.02)] border border-gray-100/90 space-y-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+          <Truck className="w-4 h-4 text-[#005bbf]" /> 核心揽收件目的地与物流信息
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <div className="space-y-4">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-gray-400 ml-1">客户结算网点 / 位置</label>
-            <select
-              value={selectedLocation}
-              onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-1 focus:ring-[#005bbf] outline-none text-xs cursor-pointer appearance-none"
-            >
-              <option value="中心配送枢纽">中心配送枢纽 (Hub 01)</option>
-              <option value="西区零售店 #4">西区零售店 #4 (Branch West)</option>
-              <option value="北部物流中心">北部物流中心 (Northern Depot)</option>
-              <option value="直接客户出货">直接客户分拨 (Direct Client Mail)</option>
-            </select>
+            <label className="text-[11px] font-bold text-gray-400 ml-1">客户结算网点 / 收货位置 (可自定义输入)</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                placeholder="请输入并自定义您的客户收货地址或位置..."
+                className="w-full h-11 pl-3.5 pr-12 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-1 focus:ring-[#005bbf] outline-none text-xs font-semibold transition-all"
+              />
+              <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none text-gray-400">
+                <MapPin className="w-4 h-4" />
+              </div>
+            </div>
+            {/* Quick Chips */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {['中心配送枢纽', '北京分拨中心', '西区零售店 #4', '北部物流中心', '直接客户直接分拨'].map((preset) => (
+                <button
+                  type="button"
+                  key={preset}
+                  onClick={() => setSelectedLocation(preset)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
+                    selectedLocation === preset
+                      ? 'bg-blue-50 border-[#005bbf]/30 text-[#005bbf]'
+                      : 'bg-gray-50 border-gray-100 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-gray-400 ml-1">运输时效优先级</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setIsExpress(false)}
-                className={`flex-1 h-11 rounded-xl text-xs font-bold leading-none transition-all ${
-                  !isExpress
-                    ? 'bg-blue-50 border border-[#005bbf] text-[#005bbf]'
-                    : 'border border-gray-100 text-gray-400 hover:bg-gray-50'
-                }`}
-              >
-                标准 (Regular)
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsExpress(true)}
-                className={`flex-1 h-11 rounded-xl text-xs font-bold leading-none transition-all ${
-                  isExpress
-                    ? 'bg-amber-50 border border-amber-600 text-amber-600'
-                    : 'border border-gray-100 text-gray-400 hover:bg-gray-50'
-                }`}
-              >
-                加急 (Express)
-              </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-gray-400 ml-1">物流寄件单号 (选填)</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="例如: SF1204892301"
+                  className="w-full h-11 pl-3.5 pr-20 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-1 focus:ring-[#005bbf] outline-none text-xs font-mono font-bold transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const randomNum = 'SF' + Math.floor(1000000000 + Math.random() * 9000000000);
+                    setTrackingNumber(randomNum);
+                  }}
+                  className="absolute right-1.5 top-1.5 h-8 px-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-[10px] font-bold transition-all border border-gray-200/50 cursor-pointer"
+                >
+                  自动产生
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-gray-400 ml-1">运输时效优先级</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExpress(false)}
+                  className={`flex-1 h-11 rounded-xl text-xs font-bold leading-none transition-all ${
+                    !isExpress
+                      ? 'bg-blue-50 border border-[#005bbf] text-[#005bbf]'
+                      : 'border border-gray-150 text-gray-400 hover:bg-gray-50'
+                  }`}
+                >
+                  标准 (Regular)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsExpress(true)}
+                  className={`flex-1 h-11 rounded-xl text-xs font-bold leading-none transition-all ${
+                    isExpress
+                      ? 'bg-amber-50 border border-amber-600 text-amber-600'
+                      : 'border border-gray-150 text-gray-400 hover:bg-gray-50'
+                  }`}
+                >
+                  加急 (Express)
+                </button>
+              </div>
             </div>
           </div>
         </div>
